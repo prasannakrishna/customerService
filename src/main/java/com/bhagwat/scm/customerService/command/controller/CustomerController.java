@@ -18,8 +18,8 @@ import java.util.concurrent.CompletableFuture;
 @RequestMapping("/api/customers")
 public class CustomerController {
 
-    private final CommandGateway commandGateway;
     private final QueryGateway queryGateway;
+    private final CommandGateway commandGateway;
 
     public CustomerController(CommandGateway commandGateway, QueryGateway queryGateway) {
         this.commandGateway = commandGateway;

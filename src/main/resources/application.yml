@@ -4,8 +4,21 @@ server:
 spring:
   application:
     name: customerservice  # Use lowercase, no dash for consistency with Eureka
-
+  kafka:
+    consumer:
+      bootstrap-servers: localhost:9092
+      group-id: my-service-group
+      auto-offset-reset: latest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.example.orderservice.events, com.example.paymentservice.events, com.example.shipmentservice.events, com.example.carrierservice.events, com.example.productservice.events"
+    producer:
+      bootstrap-servers: localhost:9092
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 logging:
   level:
     org.springframework.cloud.netflix.eureka: DEBUG
+
 
