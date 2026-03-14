@@ -52,4 +52,12 @@ public class ProductSubscription {
     private Instant lastModifiedTimestamp;
     private boolean notifyOnCheckouts;
     private boolean remind;
+
+    // Once payment is made, subscription cannot be cancelled — only held
+    @Column(name = "is_paid")
+    private boolean paid;
+
+    // Holds until this timestamp; null means not on hold
+    @Column(name = "hold_until")
+    private Instant holdUntil;
 }

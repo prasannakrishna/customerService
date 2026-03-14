@@ -26,4 +26,7 @@ public class ProductSubscriptionResponse {
     private Instant subscriptionEndDate;
     private boolean notifyOnCheckouts;
     private boolean remind;
+    private boolean paid;
+    private Instant holdUntil;
+    private boolean cancellable; // false once paid
 }
