@@ -4,7 +4,6 @@ import com.bhagwat.scm.customerService.dto.AddressDto;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.axonframework.modelling.command.TargetAggregateIdentifier;
 
 import java.util.List;
 
@@ -12,7 +11,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class CreateCustomerCommand{
-    @TargetAggregateIdentifier
+    //@TargetAggregateIdentifier
     String id;
     String fname;
     String mname;

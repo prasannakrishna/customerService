@@ -6,17 +6,24 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
+import java.util.UUID;
 
 
 @Entity
 @Data
 @AllArgsConstructor
-@Table(name = "customer")
+@Table(name = "customers", uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"fname", "email", "mobileNumber"})
+})
 @NoArgsConstructor
 public class Customer {
+
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long Id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+    @Column(unique = true, nullable = false)
+    private String username;
+    private String passwordHash;
     private String fname;
     private String mname;
     private String lname;
@@ -25,8 +32,6 @@ public class Customer {
     private boolean isEmailVerified;
     private boolean isMobileVerified;
 
-    @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     private List<Address> addresses;
-
 }
-

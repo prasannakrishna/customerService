@@ -1,11 +1,10 @@
 package com.bhagwat.scm.customerService.command.commanddto;
 
 import lombok.Data;
-import org.axonframework.modelling.command.TargetAggregateIdentifier;
 
 @Data
 public class AllocateInventoryCommand {
-    @TargetAggregateIdentifier
+   // @TargetAggregateIdentifier
     private final String inventoryId;
     private final String orderId;
     private final Integer orderQuantity;

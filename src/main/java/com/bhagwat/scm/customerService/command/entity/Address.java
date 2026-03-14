@@ -5,17 +5,19 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.UUID;
 
-@Embeddable
+
+@Entity
 @Data
 @Table(name = "address")
 @NoArgsConstructor
 @AllArgsConstructor
-@Entity
 public class Address {
+
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long addressId;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID addressId;
     private String addressLine1;
     private String addressLine2;
     private String city;
@@ -27,8 +29,8 @@ public class Address {
     private double longitude;
     private double latitude;
     private boolean isPrimaryAddress;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id")
     private Customer customer;
-
 }

@@ -3,13 +3,12 @@ package com.bhagwat.scm.customerService.command.commanddto;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.axonframework.modelling.command.TargetAggregateIdentifier;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 public class CreateAddressCommand {
-    @TargetAggregateIdentifier
+    //@TargetAggregateIdentifier
     String addressId; // Usually used if this command targets an Address aggregate. You may use UUID or null initially.
 
     String addressLine1;

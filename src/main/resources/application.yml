@@ -1,9 +1,26 @@
 server:
-  port: 8086  # The port your service will run on
+  port: 8086
 
 spring:
   application:
-    name: customerservice  # Use lowercase, no dash for consistency with Eureka
+    name: customerservice
+  datasource:
+    url: jdbc:postgresql://localhost:5432/customerdb
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          time_zone: UTC
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/customerdb
   kafka:
     consumer:
       bootstrap-servers: localhost:9092
@@ -12,13 +29,13 @@ spring:
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
-        spring.json.trusted.packages: "com.example.orderservice.events, com.example.paymentservice.events, com.example.shipmentservice.events, com.example.carrierservice.events, com.example.productservice.events"
+        spring.json.trusted.packages: "com.bhagwat.scm.customerService.command.events"
     producer:
       bootstrap-servers: localhost:9092
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
 logging:
   level:
-    org.springframework.cloud.netflix.eureka: DEBUG
-
-
+    org.springframework.cloud.netflix.eureka: WARN
+    org.springframework.security: WARN

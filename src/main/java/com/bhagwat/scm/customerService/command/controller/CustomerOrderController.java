@@ -1,30 +1,38 @@
 package com.bhagwat.scm.customerService.command.controller;
 
+import com.bhagwat.scm.customerService.command.service.OrderCommandService;
+import com.bhagwat.scm.customerService.dto.OrderResponse;
 import com.bhagwat.scm.customerService.dto.PlaceOrderRequest;
-import org.axonframework.commandhandling.gateway.CommandGateway;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/customer")
+@RequestMapping("/api/orders")
 public class CustomerOrderController {
 
-    @Autowired
-    private CommandGateway commandGateway;
+    private final OrderCommandService orderCommandService;
 
-    @PostMapping("/placeOrder")
-    public ResponseEntity<String> placeOrder(@RequestBody PlaceOrderRequest request) {
-        String orderId = UUID.randomUUID().toString();
+    public CustomerOrderController(OrderCommandService orderCommandService) {
+        this.orderCommandService = orderCommandService;
+    }
 
-        // Trigger the Saga by sending the CreateOrderCommand
-        //commandGateway.send(new CreateOrderCommand(orderId, request.getCustomerId(), request.getOrderLines()));
+    @PostMapping
+    public ResponseEntity<OrderResponse> placeOrder(@RequestBody PlaceOrderRequest request) {
+        OrderResponse response = orderCommandService.placeOrder(request);
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
+    }
 
-        return ResponseEntity.ok("Order placed successfully. Order ID: " + orderId);
+    @GetMapping
+    public ResponseEntity<List<OrderResponse>> getOrders(@RequestParam UUID customerId) {
+        return ResponseEntity.ok(orderCommandService.getOrdersByCustomerId(customerId));
+    }
+
+    @GetMapping("/{orderId}")
+    public ResponseEntity<OrderResponse> getOrderById(@PathVariable UUID orderId) {
+        return ResponseEntity.ok(orderCommandService.getOrderByOrderId(orderId));
     }
 }
