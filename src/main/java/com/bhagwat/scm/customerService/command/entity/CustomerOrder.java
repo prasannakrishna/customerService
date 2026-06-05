@@ -85,6 +85,10 @@ public class CustomerOrder {
     @Column(name = "order_status", nullable = false)
     private CustomerOrderStatus orderStatus;
 
+    /** RETAIL (one-time, retail price, max 1 per product+seller+variant) or SUBSCRIPTION (community price, recurring) */
+    @Column(name = "order_type", length = 20)
+    private String orderType;
+
     @Column(name = "amount", precision = 19, scale = 2, nullable = false)
     private BigDecimal amount;
 

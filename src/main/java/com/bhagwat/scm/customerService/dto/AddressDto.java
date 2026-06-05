@@ -22,4 +22,10 @@ public class AddressDto {
     private double longitude;
     private double latitude;
     private boolean isPrimaryAddress;
+    private String addressType;
+    private String addressLabel;
+    private String contactPhone;
+    private String placeId;
+    private String plusCode;
+    private String formattedAddress;
 }

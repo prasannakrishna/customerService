@@ -30,6 +30,31 @@ public class Address {
     private double latitude;
     private boolean isPrimaryAddress;
 
+    /** HOME, WORK, OFFICE, OTHER */
+    @Column(name = "address_type", length = 20)
+    private String addressType;
+
+    /** User-friendly label: "Home", "Mom's place", "Office" */
+    @Column(name = "address_label", length = 50)
+    private String addressLabel;
+
+    @Column(name = "contact_phone", length = 15)
+    private String contactPhone;
+
+    // ── Google Maps location data ───────────────────────────────────────
+
+    /** Google Maps Place ID — unique identifier, can reconstruct full address */
+    @Column(name = "place_id", length = 100)
+    private String placeId;
+
+    /** Google Plus Code — works even in areas without formal addresses */
+    @Column(name = "plus_code", length = 20)
+    private String plusCode;
+
+    /** Full formatted address from Google Maps */
+    @Column(name = "formatted_address", columnDefinition = "TEXT")
+    private String formattedAddress;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id")
     private Customer customer;

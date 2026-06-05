@@ -5,8 +5,11 @@ import com.bhagwat.scm.customerService.command.entity.Customer;
 import com.bhagwat.scm.customerService.command.events.CustomerEvent;
 import com.bhagwat.scm.customerService.command.repository.JpaCustomerRepository;
 import com.bhagwat.scm.customerService.dto.*;
+import com.bhagwat.scm.core.rest.api.ApiClient;
+import com.bhagwat.scm.core.rest.config.ServiceApiRegistry;
+import com.bhagwat.scm.kafka.envelope.KafkaEventEnvelope;
+import com.bhagwat.scm.kafka.producer.KafkaMessageProducer;
 import jakarta.transaction.Transactional;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -19,14 +22,21 @@ public class AuthService {
 
     private final JpaCustomerRepository customerRepository;
     private final PasswordEncoder passwordEncoder;
-    private final KafkaTemplate<String, CustomerEvent> kafkaTemplate;
+    private final KafkaMessageProducer kafkaMessageProducer;
+    private final ApiClient apiClient;
+    private final ServiceApiRegistry apiRegistry;
 
     public AuthService(JpaCustomerRepository customerRepository,
                        PasswordEncoder passwordEncoder,
-                       KafkaTemplate<String, CustomerEvent> kafkaTemplate) {
+                       KafkaMessageProducer kafkaMessageProducer,
+                       ApiClient apiClient,
+                       ServiceApiRegistry apiRegistry, RedisAuthService redisAuth) {
         this.customerRepository = customerRepository;
         this.passwordEncoder = passwordEncoder;
-        this.kafkaTemplate = kafkaTemplate;
+        this.kafkaMessageProducer = kafkaMessageProducer;
+        this.apiClient = apiClient;
+        this.apiRegistry = apiRegistry;
+        this.redisAuth = redisAuth;
     }
 
     @Transactional
@@ -69,20 +79,73 @@ public class AuthService {
 
         Customer saved = customerRepository.save(customer);
 
-        CustomerDto dto = toDto(saved);
-        kafkaTemplate.send("customer-events", saved.getId().toString(),
-                new CustomerEvent(UUID.randomUUID(), saved.getId(), "CUSTOMER_CREATED", dto));
+        // Publish event (non-blocking — don't roll back registration if Kafka is down)
+        try {
+            CustomerDto dto = toDto(saved);
+            kafkaMessageProducer.sendEnvelope("customer-events",
+                    KafkaEventEnvelope.<CustomerEvent>builder()
+                            .eventType("CUSTOMER_CREATED").source("customerService")
+                            .payload(new CustomerEvent(UUID.randomUUID(), saved.getId(), "CUSTOMER_CREATED", dto)).build());
+        } catch (Exception e) {
+            System.out.println("Kafka publish failed (non-fatal): " + e.getMessage());
+        }
 
         return new LoginResponse(saved.getId(), saved.getUsername(), saved.getFname(), saved.getLname(), saved.getEmail());
     }
 
     public LoginResponse login(LoginRequest request) {
+        // Rate limit: 5 login attempts per minute per username
+        if (redisAuth.isLoginRateLimited(request.getUsername())) {
+            throw new RuntimeException("Too many login attempts. Try again in 1 minute.");
+        }
+
         Customer customer = customerRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new RuntimeException("Invalid username or password"));
 
         if (!passwordEncoder.matches(request.getPassword(), customer.getPasswordHash())) {
             throw new RuntimeException("Invalid username or password");
         }
+
+        return new LoginResponse(customer.getId(), customer.getUsername(), customer.getFname(), customer.getLname(), customer.getEmail());
+    }
+
+    // ── OTP-based login (Redis-backed) ─────────────────────────────────
+
+    private final RedisAuthService redisAuth;
+
+    public void sendOtp(String mobileNumber) {
+        if (mobileNumber == null || mobileNumber.isBlank()) throw new RuntimeException("Mobile number required");
+
+        // Rate limit: 3 OTP requests per 5 minutes
+        if (redisAuth.isOtpRateLimited(mobileNumber)) {
+            throw new RuntimeException("Too many OTP requests. Try again in 5 minutes.");
+        }
+
+        String otp = redisAuth.generateAndStoreOtp(mobileNumber);
+        System.out.println("OTP for " + mobileNumber + ": " + otp);
+
+        // Send OTP via notificationService
+        try {
+            java.util.Map<String, Object> body = java.util.Map.of(
+                    "channel", "SMS", "sender", "COMMART", "recipient", mobileNumber,
+                    "subject", "OTP Verification",
+                    "message", "Your Commart OTP is: " + otp + ". Valid for 5 minutes. Do not share.");
+            apiClient.invoke(apiRegistry.getConfig("notification-send"), body, Object.class);
+        } catch (Exception e) {
+            System.out.println("Notification service unavailable, OTP logged to console only: " + e.getMessage());
+        }
+    }
+
+    public LoginResponse loginWithOtp(String mobileNumber, String otp) {
+        if (!redisAuth.verifyOtp(mobileNumber, otp)) {
+            throw new RuntimeException("Invalid or expired OTP");
+        }
+
+        Customer customer = customerRepository.findByMobileNumber(mobileNumber)
+                .orElseThrow(() -> new RuntimeException("No account found for this mobile number"));
+
+        customer.setMobileVerified(true);
+        customerRepository.save(customer);
 
         return new LoginResponse(customer.getId(), customer.getUsername(), customer.getFname(), customer.getLname(), customer.getEmail());
     }

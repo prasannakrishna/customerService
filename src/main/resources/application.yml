@@ -1,14 +1,32 @@
 server:
-  port: 8086
+  port: 8082
+  tomcat:
+    threads:
+      max: 500
+      min-spare: 50
+    accept-count: 1000
+    max-connections: 10000
+  servlet:
+    async:
+      timeout: 30000
 
 spring:
   application:
-    name: customerservice
+    name: customerService
+  config:
+    import: optional:configserver:http://localhost:8888
+  main:
+    allow-bean-definition-overriding: true
   datasource:
     url: jdbc:postgresql://localhost:5432/customerdb
-    username: postgres
-    password: postgres
+    username: prasannakrishnabhagwat
+    password: admin123
     driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 50
+      minimum-idle: 10
+      connection-timeout: 5000
+      idle-timeout: 300000
   jpa:
     hibernate:
       ddl-auto: update
@@ -21,10 +39,14 @@ spring:
   data:
     mongodb:
       uri: mongodb://localhost:27017/customerdb
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+api:
   kafka:
     consumer:
       bootstrap-servers: localhost:9092
-      group-id: my-service-group
+      group-id: customer-service-group
       auto-offset-reset: latest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
@@ -34,6 +56,96 @@ spring:
       bootstrap-servers: localhost:9092
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+# ─── Multi-tenancy ────────────────────────────────────────────────────────────
+multitenancy:
+  enabled: false
+  fail-on-missing-tenant: false
+  default-tenant-id: public
+
+# ─── App Config ───────────────────────────────────────────────────────────────
+app:
+  frontend-url: http://localhost:5173
+
+# ─── Inter-Service API Configs (loaded into ServiceApiRegistry) ───────────────
+service:
+  core:
+    rest-client:
+      response-time-out: 5000
+      connection-time-out: 3000
+      request-time-out: 5000
+    api-configs:
+      # Catalog Service (8089)
+      catalog-products-all:
+        host: http://localhost:8089
+        path: /api/catalog/products/all
+        method: GET
+      catalog-products-search:
+        host: http://localhost:8089
+        path: /api/catalog/products/search
+        method: GET
+      catalog-products-for-user:
+        host: http://localhost:8089
+        path: /api/catalog/products
+        method: GET
+      catalog-products-grouped:
+        host: http://localhost:8089
+        path: /api/catalog/products/grouped-by-community
+        method: GET
+
+      # Community Manager (8081)
+      community-member-of:
+        host: http://localhost:8081
+        path: /api/community-customer/member-of
+        method: GET
+      community-moderator-of:
+        host: http://localhost:8081
+        path: /api/community-customer/moderator-of
+        method: GET
+
+      # Cart Service (8091)
+      cart-add:
+        host: http://localhost:8091
+        path: /api/carts/add
+        method: POST
+      cart-get:
+        host: http://localhost:8091
+        path: /api/carts/{customerId}
+        method: GET
+      cart-checkout:
+        host: http://localhost:8091
+        path: /api/carts/checkout/{customerId}
+        method: POST
+      subscription-cart-add:
+        host: http://localhost:8091
+        path: /api/subscription-cart/add
+        method: POST
+      subscription-cart-get:
+        host: http://localhost:8091
+        path: /api/subscription-cart/{customerId}
+        method: GET
+      subscription-cart-checkout:
+        host: http://localhost:8091
+        path: /api/subscription-cart/checkout/{customerId}
+        method: POST
+      subscription-hold:
+        host: http://localhost:8091
+        path: /api/subscription-cart/{id}/hold
+        method: POST
+      subscription-resume:
+        host: http://localhost:8091
+        path: /api/subscription-cart/{id}/resume
+        method: POST
+      subscription-cancel:
+        host: http://localhost:8091
+        path: /api/subscription-cart/{id}/cancel
+        method: POST
+
+      # Notification Service (8096)
+      notification-send:
+        host: http://localhost:8096
+        path: /api/v1/notifications/send
+        method: POST
 
 logging:
   level:

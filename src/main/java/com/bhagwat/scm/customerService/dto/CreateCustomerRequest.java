@@ -18,4 +18,12 @@ public class CreateCustomerRequest {
     private String email;
     private String mobileNumber;
     private List<AddressDto> addresses;
+
+    // Profile fields
+    private String profileImageUrl;
+    private String dateOfBirth;  // yyyy-MM-dd
+    private String gender;
+    private String preferredLanguage;
+    private Double defaultLatitude;
+    private Double defaultLongitude;
 }

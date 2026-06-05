@@ -7,8 +7,9 @@ import com.bhagwat.scm.customerService.dto.AddressDto;
 import com.bhagwat.scm.customerService.dto.CreateCustomerRequest;
 import com.bhagwat.scm.customerService.dto.CustomerDto;
 import com.bhagwat.scm.customerService.dto.UpdateCustomerRequest;
+import com.bhagwat.scm.kafka.envelope.KafkaEventEnvelope;
+import com.bhagwat.scm.kafka.producer.KafkaMessageProducer;
 import jakarta.transaction.Transactional;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -19,14 +20,14 @@ import java.util.stream.Collectors;
 public class CustomerCommandService {
 
     private final JpaCustomerRepository customerRepository;
-    private final KafkaTemplate<String, CustomerEvent> kafkaTemplate;
+    private final KafkaMessageProducer kafkaMessageProducer;
     private final PasswordEncoder passwordEncoder;
 
     public CustomerCommandService(JpaCustomerRepository customerRepository,
-                                  KafkaTemplate<String, CustomerEvent> kafkaTemplate,
+                                  KafkaMessageProducer kafkaMessageProducer,
                                   PasswordEncoder passwordEncoder) {
         this.customerRepository = customerRepository;
-        this.kafkaTemplate = kafkaTemplate;
+        this.kafkaMessageProducer = kafkaMessageProducer;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -103,7 +104,10 @@ public class CustomerCommandService {
 
     private void publishCustomerEvent(CustomerDto dto, String eventType) {
         CustomerEvent event = new CustomerEvent(UUID.randomUUID(), dto.getId(), eventType, dto);
-        kafkaTemplate.send("customer-events", dto.getId().toString(), event);
+        kafkaMessageProducer.sendEnvelope("customer-events",
+                KafkaEventEnvelope.<CustomerEvent>builder()
+                        .eventType(eventType).source("customerService")
+                        .payload(event).build());
     }
 
     private CustomerDto mapCustomerToDto(Customer customer) {
